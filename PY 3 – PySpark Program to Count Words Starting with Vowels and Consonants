@@ -1,0 +1,51 @@
+
+import findspark
+findspark.init()
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, count
+
+# Create a Spark session
+spark = SparkSession.builder.appName("PySparkExample").getOrCreate()
+
+# Create a DataFrame with sample data
+data = [
+    ("Alice",),
+    ("Bob",),
+    ("Charlie",),
+    ("David",),
+    ("Eve",),
+    ("Amy",),
+    ("Aaron",),
+    ("Brian",)
+]
+
+columns = ["word"]
+df = spark.createDataFrame(data, columns)
+
+# Define vowels and categorize words
+vowel_condition = col("word").substr(1, 1).lower().isin(
+    ["a", "e", "i", "o", "u"]
+)
+
+df = df.withColumn(
+    "StartsWithVowel",
+    when(vowel_condition, 1).otherwise(0)
+)
+
+# Group and count words
+result = (
+    df.groupBy("StartsWithVowel")
+    .agg(count("*").alias("Count"))
+    .withColumn(
+        "Category",
+        when(col("StartsWithVowel") == 1, "Vowel")
+        .otherwise("Consonant")
+    )
+)
+
+# Display the result
+result.show()
+
+# Stop Spark session
+spark.stop()
